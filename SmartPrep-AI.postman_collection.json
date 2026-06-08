@@ -1,0 +1,303 @@
+{
+  "info": {
+    "name": "SmartPrep AI API",
+    "description": "Complete API collection for SmartPrep AI backend (Express + MongoDB)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token – set automatically after login/register"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/auth/me", "host": ["{{base_url}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Update Profile (username)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newusername\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/profile", "host": ["{{base_url}}"], "path": ["api", "auth", "profile"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword456\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/password", "host": ["{{base_url}}"], "path": ["api", "auth", "password"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Progress",
+      "item": [
+        {
+          "name": "Get Progress",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/progress", "host": ["{{base_url}}"], "path": ["api", "progress"] }
+          }
+        },
+        {
+          "name": "Mark Day Complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill\": \"Python\",\n  \"day\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/progress/day", "host": ["{{base_url}}"], "path": ["api", "progress", "day"] }
+          }
+        },
+        {
+          "name": "Save Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"selectedPath\": \"data-science\",\n  \"selectedSkill\": \"Python\",\n  \"currentDay\": 1,\n  \"darkMode\": false,\n  \"notificationsEnabled\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/progress/settings", "host": ["{{base_url}}"], "path": ["api", "progress", "settings"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quiz",
+      "item": [
+        {
+          "name": "Submit Quiz Result",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill\": \"Python\",\n  \"day\": 1,\n  \"score\": 4,\n  \"total\": 5\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/quiz", "host": ["{{base_url}}"], "path": ["api", "quiz"] }
+          }
+        },
+        {
+          "name": "Submit Mock Test Result",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 18,\n  \"total\": 25,\n  \"accuracy\": 72.0,\n  \"timeTaken\": 1800,\n  \"weakAreas\": [\"SQL\", \"Statistics\"]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/quiz/mock", "host": ["{{base_url}}"], "path": ["api", "quiz", "mock"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Course",
+      "item": [
+        {
+          "name": "Get All Course Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/course", "host": ["{{base_url}}"], "path": ["api", "course"] }
+          }
+        },
+        {
+          "name": "Update Course Section (superuser/admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Python\": {\n    \"id\": \"python\",\n    \"title\": \"Python\",\n    \"icon\": \"🐍\",\n    \"totalDays\": 7,\n    \"days\": []\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/course/skills", "host": ["{{base_url}}"], "path": ["api", "course", "skills"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions (Admin/Superuser)",
+      "item": [
+        {
+          "name": "Get All Questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/questions", "host": ["{{base_url}}"], "path": ["api", "questions"] }
+          }
+        },
+        {
+          "name": "Create Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill\": \"Python\",\n  \"day\": 1,\n  \"question\": \"What is a list in Python?\",\n  \"option_a\": \"An immutable sequence\",\n  \"option_b\": \"A mutable ordered sequence\",\n  \"option_c\": \"A key-value store\",\n  \"option_d\": \"An unordered set\",\n  \"answer\": \"B\",\n  \"explanation\": \"A list is a mutable, ordered collection in Python.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/questions", "host": ["{{base_url}}"], "path": ["api", "questions"] }
+          }
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is a list in Python? (updated)\",\n  \"answer\": \"B\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/questions/:id", "host": ["{{base_url}}"], "path": ["api", "questions", ":id"], "variable": [{ "key": "id", "value": "QUESTION_ID_HERE" }] }
+          }
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/questions/:id", "host": ["{{base_url}}"], "path": ["api", "questions", ":id"], "variable": [{ "key": "id", "value": "QUESTION_ID_HERE" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api", "health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Chat",
+      "item": [
+        {
+          "name": "Chat (SSE Stream)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"What is a Pandas DataFrame?\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/chat", "host": ["{{base_url}}"], "path": ["api", "chat"] }
+          }
+        }
+      ]
+    }
+  ]
+}
