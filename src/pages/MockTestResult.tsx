@@ -7,11 +7,13 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { useProgress } from '../hooks/useProgress';
 import { gradientBannerSx, statGridSx } from '../styles/common';
+import TestCompleted from './TestCompleted';
+import { useEffect, useState } from 'react';
 
 export default function MockTestResult() {
   const { mockTestResult } = useProgress();
   const navigate = useNavigate();
-
+  const [showConfetti, setShowConfetti] = useState(false);
   if (!mockTestResult) {
     return (
       <Box>
@@ -27,9 +29,18 @@ export default function MockTestResult() {
 
   const rank = accuracy >= 90 ? 'Expert 🌟' : accuracy >= 75 ? 'Advanced 🚀' : accuracy >= 60 ? 'Intermediate 📈' : 'Beginner 🌱';
   const passed = accuracy >= 60;
+  useEffect(() => {
+    setShowConfetti(true);
 
+    setTimeout(() => {
+      setShowConfetti(false);
+    }, 4000);
+  }, [])
   return (
     <Box>
+      {mockTestResult && showConfetti &&
+        <TestCompleted />
+      }
       <Typography variant="h4" fontWeight={800} mb={0.5}>Mock Test Result 📊</Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
         {passed ? 'Great Attempt! You completed the mock test.' : 'Keep practising to improve your score.'}

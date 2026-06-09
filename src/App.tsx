@@ -19,6 +19,7 @@ import QuestionSet    from './pages/QuestionSet';
 import Layout from './components/Layout';
 import GlobalLoader from './components/GlobalLoader';
 import type { ReactNode } from 'react';
+import NotFound from './pages/NotFound';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -60,7 +61,7 @@ const AppRoutes = () => {
         <Route path="course-editor"   element={<SuperuserRoute><CourseEditor /></SuperuserRoute>} />
         <Route path="day-quiz-editor" element={<SuperuserRoute><DayQuizEditor /></SuperuserRoute>} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

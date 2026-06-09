@@ -86,7 +86,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // ── Restore session from token on app load ─────────────────────────────────
   useEffect(() => {
     // Always fetch course data (public endpoint, no auth required)
-    dispatch(fetchCourseData());
+    // dispatch(fetchCourseData());
 
     const token = localStorage.getItem('smartprep_token');
     if (token && !user) {
