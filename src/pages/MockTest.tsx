@@ -16,9 +16,9 @@ export default function MockTest() {
   const { saveMockResult } = useProgress();
   const { mockTestQuestions } = useCourseData();
   const navigate = useNavigate();
-  const [started, setStarted]   = useState(false);
-  const [current, setCurrent]   = useState(0);
-  const [answers, setAnswers]   = useState<(number | null)[]>(() => Array(mockTestQuestions.length).fill(null));
+  const [started, setStarted] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState<(number | null)[]>(() => Array(mockTestQuestions.length).fill(null));
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -68,7 +68,7 @@ export default function MockTest() {
   if (!started) {
     return (
       <Box>
-      <Box sx={gradientBannerSx()}>
+        <Box sx={gradientBannerSx()}>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Weekly Mock Test 🧠</Typography>
           <Typography variant="body1" sx={{ opacity: 0.85, mb: 2 }}>
             This test contains {mockTestQuestions.length} MCQ questions from all the topics you studied this week.
@@ -77,9 +77,9 @@ export default function MockTest() {
           <Box sx={statGridSx(4)}>
             {[
               { label: 'Total Questions', value: mockTestQuestions.length },
-              { label: 'Time Limit',      value: '60 min' },
-              { label: 'Question Type',   value: 'MCQ' },
-              { label: 'Topics',          value: Object.keys(topicCounts).length },
+              { label: 'Time Limit', value: '60 min' },
+              { label: 'Question Type', value: 'MCQ' },
+              { label: 'Topics', value: Object.keys(topicCounts).length },
             ].map(({ label, value }) => (
               <Box key={label} sx={{ bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, p: 1.5, border: '1px solid rgba(255,255,255,0.15)' }}>
                 <Typography variant="h5" sx={{ fontWeight: 800 }}>{value}</Typography>
@@ -99,8 +99,25 @@ export default function MockTest() {
           </Box>
 
           <Button
-            variant="contained" size="large" onClick={() => setStarted(true)}
-            sx={{ bgcolor: '#fff', color: '#4f46e5', fontWeight: 800, px: 5, '&:hover': { bgcolor: '#f0f0f0' } }}
+            variant="contained"
+            size="large"
+            onClick={() => setStarted(true)}
+            sx={{
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              color: "#fff",
+              fontWeight: 700,
+              px: 5,
+              py: 1.5,
+              borderRadius: "30px",
+              boxShadow: "0 8px 20px rgba(99, 102, 241, 0.3)",
+              transition: "all 0.3s ease",
+
+              "&:hover": {
+                background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                transform: "translateY(-2px)",
+                boxShadow: "0 12px 24px rgba(99, 102, 241, 0.4)",
+              },
+            }}
           >
             Start Test
           </Button>
@@ -109,7 +126,7 @@ export default function MockTest() {
     );
   }
 
-  const q        = mockTestQuestions[current];
+  const q = mockTestQuestions[current];
   const progress = ((current + 1) / mockTestQuestions.length) * 100;
   const isWarning = timeLeft < 600;
 

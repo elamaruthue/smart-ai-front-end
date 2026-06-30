@@ -20,9 +20,9 @@ export const authCardSx = (maxWidth: number): SxProps<Theme> => ({
 export const authCardContentSx: SxProps<Theme> = { p: 5 };
 
 export const logoBoxSx: SxProps<Theme> = {
-  width: 60,
-  height: 60,
-  borderRadius: 3,
+  width: 110,
+  height: 110,
+  borderRadius: 50,
   background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
   display: 'flex',
   alignItems: 'center',

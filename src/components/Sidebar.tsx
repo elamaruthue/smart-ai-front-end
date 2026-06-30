@@ -11,8 +11,10 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolIcon from '@mui/icons-material/School';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import QuestionAnswer from '@mui/icons-material/QuestionAnswer';
-import EditCalendarIcon        from '@mui/icons-material/EditCalendar';
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import { useApp } from '../context/AppContext';
+import { logoPng } from '@/assets';
+import { logoBoxSx } from '@/styles/common';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -26,31 +28,31 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/path',         icon: <DashboardIcon fontSize="small" />, label: 'Dashboard' },
-  { to: '/progress',     icon: <TimelineIcon  fontSize="small" />, label: 'Progress' },
-  { to: '/interview',    icon: <QuizIcon      fontSize="small" />, label: 'Interview Prep' },
-  { to: '/ai-assistant', icon: <SmartToyIcon  fontSize="small" />, label: 'AI Assistant' },
-  { to: '/mock-test',    icon: <AssignmentIcon fontSize="small" />, label: 'Mock Test' },
-  { to: '/settings',     icon: <SettingsIcon  fontSize="small" />, label: 'Settings' },
+  { to: '/path', icon: <DashboardIcon fontSize="small" />, label: 'Dashboard' },
+  { to: '/progress', icon: <TimelineIcon fontSize="small" />, label: 'Progress' },
+  { to: '/interview', icon: <QuizIcon fontSize="small" />, label: 'Interview Prep' },
+  { to: '/ai-assistant', icon: <SmartToyIcon fontSize="small" />, label: 'AI Assistant' },
+  { to: '/mock-test', icon: <AssignmentIcon fontSize="small" />, label: 'Mock Test' },
+  { to: '/settings', icon: <SettingsIcon fontSize="small" />, label: 'Settings' },
 ];
 
 const navItemSx = (active: boolean) =>
-  ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1.25,
-    px: 2.5,
-    py: 1.1,
-    textDecoration: 'none',
-    color: active ? '#fff' : '#c7d2fe',
-    bgcolor: active ? 'rgba(79,70,229,0.25)' : 'transparent',
-    borderLeft: active ? '3px solid #818cf8' : '3px solid transparent',
-    fontSize: 14,
-    fontWeight: active ? 700 : 500,
-    transition: 'all .18s',
-    cursor: 'pointer',
-    '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', color: '#fff' },
-  } as const);
+({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1.25,
+  px: 2.5,
+  py: 1.1,
+  textDecoration: 'none',
+  color: active ? '#fff' : '#c7d2fe',
+  bgcolor: active ? 'rgba(79,70,229,0.25)' : 'transparent',
+  borderLeft: active ? '3px solid #818cf8' : '3px solid transparent',
+  fontSize: 14,
+  fontWeight: active ? 700 : 500,
+  transition: 'all .18s',
+  cursor: 'pointer',
+  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', color: '#fff' },
+} as const);
 
 export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { user, selectedPath, logout } = useApp();
@@ -72,15 +74,35 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
       }}
     >
       {/* Brand */}
-      <Box sx={{ p: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box sx={{ ...logoBoxSx, mt: 4 }}>
+        <img
+          src={logoPng}
+          style={{
+            width: '100px',
+            height: '100px',
+            objectFit: 'contain',
+            borderRadius: 50
+          }}
+        />
+      </Box>
+      <Box sx={{ p: '10px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Box sx={{ width: 38, height: 38, borderRadius: '10px', background: 'linear-gradient(135deg, #4f46e5, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-            🧠
-          </Box>
           <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.2, fontSize: 14 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 800,
+                lineHeight: 1.2,
+                fontSize: 14,
+                background: "linear-gradient(135deg, #4f46e5, #edf3f4)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                display: "inline-block",
+              }}
+            >
               SMARTPREP AI
             </Typography>
+            <br />
             <Typography variant="caption" sx={{ color: '#c7d2fe', fontSize: 11 }}>
               Learn Smarter. Achieve Bigger.
             </Typography>
@@ -154,10 +176,10 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
             <Typography sx={{ px: 2.5, py: 0.5, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(251,191,36,0.7)' }}>
               Admin
             </Typography>
-            {['/course-editor', '/day-quiz-editor','/interview-quiz-editor', '/question-set'].map((path, i) => {
+            {['/course-editor', '/day-quiz-editor', '/interview-quiz-editor', '/question-set'].map((path, i) => {
               const active = location.pathname === path;
-              const labels = ['Course Editor', 'Day Quiz Editor','Interview Quiz Editor', 'Question Set'];
-              const icons  = [<AdminPanelSettingsIcon fontSize="small" />, <EditCalendarIcon fontSize="small" />,<QuestionAnswer />, <QuizOutlinedIcon fontSize="small" />];
+              const labels = ['Course Editor', 'Day Quiz Editor', 'Interview Quiz Editor', 'Question Set'];
+              const icons = [<AdminPanelSettingsIcon fontSize="small" />, <EditCalendarIcon fontSize="small" />, <QuestionAnswer />, <QuizOutlinedIcon fontSize="small" />];
               return (
                 <Box key={path} component={Link} to={path} onClick={onMobileClose} sx={{
                   ...navItemSx(active),

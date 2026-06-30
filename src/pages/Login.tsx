@@ -14,6 +14,7 @@ import {
   authPageSx, authCardSx, authCardContentSx,
   logoBoxSx, submitButtonSx, spinnerOverlaySx,
 } from '../styles/common';
+import { logoPng } from '@/assets';
 
 export default function Login() {
   const dispatch   = useAppDispatch();
@@ -56,7 +57,17 @@ export default function Login() {
         <CardContent sx={authCardContentSx}>
           {/* Logo */}
           <Box textAlign="center" mb={3.5}>
-            <Box sx={logoBoxSx}>🧠</Box>
+            <Box sx={logoBoxSx}>
+              <img 
+                src={logoPng}
+                style={{
+                  width: '100px',
+                  height: '100px',
+                  objectFit: 'contain',
+                  borderRadius: 50
+                }}
+              />
+            </Box>
             <Typography variant="h6" fontWeight={800} color="primary">SMARTPREP AI</Typography>
             <Typography variant="caption" color="text.secondary">Learn Smarter. Achieve Bigger.</Typography>
           </Box>

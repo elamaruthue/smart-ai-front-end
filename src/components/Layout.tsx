@@ -5,6 +5,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import AnimatedPage from './AnimatedPage';
+import { store } from '@/store';
+import { fetchCourseData } from '@/store/slices/courseDataSlice';
 
 export default function Layout() {
   const location = useLocation();
@@ -12,7 +14,7 @@ export default function Layout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => {setMobileOpen(false); store.dispatch(fetchCourseData())}} />
 
       <Box
         component="main"

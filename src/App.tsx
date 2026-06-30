@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 
 import Layout from './components/Layout';
 import GlobalLoader from './components/GlobalLoader';
+import { fetchCourseData } from './store/slices/courseDataSlice';
+import { store } from './store';
 
 // Lazy-loaded pages
 const Login = lazy(() => import('./pages/Login'));
@@ -49,6 +51,10 @@ const SuperuserRoute = ({ children }: ProtectedRouteProps) => {
 
 const AppRoutes = () => {
   const { user } = useApp();
+
+  useEffect(() => {
+    store.dispatch(fetchCourseData());
+  }, []);
 
   return (
     <Routes>

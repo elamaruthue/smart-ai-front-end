@@ -13,15 +13,16 @@ import {
   authPageSx, authCardSx, authCardContentSx,
   logoBoxSx, submitButtonSx, spinnerOverlaySx,
 } from '../styles/common';
+import { logoPng } from '@/assets';
 
 export default function Signup() {
-  const dispatch   = useAppDispatch();
-  const navigate   = useNavigate();
-  const loading    = useAppSelector((s) => s.auth.loading);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const loading = useAppSelector((s) => s.auth.loading);
   const reduxError = useAppSelector((s) => s.auth.error);
 
-  const [form, setForm]         = useState({ username: '', email: '', password: '', confirm: '' });
-  const [showPw, setShowPw]     = useState(false);
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '' });
+  const [showPw, setShowPw] = useState(false);
   const [localError, setLocalError] = useState('');
 
   const error = localError || reduxError || '';
@@ -58,69 +59,79 @@ export default function Signup() {
     <Box sx={authPageSx}>
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0,  scale: 1 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         style={{ width: '100%', maxWidth: 440 }}
       >
-      <Card sx={{ ...authCardSx(440), maxWidth: '100%' }}>
-        <CardContent sx={authCardContentSx}>
-          <Box textAlign="center" mb={3}>
-            <Box sx={logoBoxSx}>🧠</Box>
-            <Typography variant="h6" fontWeight={800} color="primary">SMARTPREP AI</Typography>
-          </Box>
+        <Card sx={{ ...authCardSx(440), maxWidth: '100%' }}>
+          <CardContent sx={authCardContentSx}>
+            <Box textAlign="center" mb={3}>
+              <Box sx={logoBoxSx}>
+                <img
+                  src={logoPng}
+                  style={{
+                    width: '100px',
+                    height: '100px',
+                    objectFit: 'contain',
+                    borderRadius: 50
+                  }}
+                />
+              </Box>
+              <Typography variant="h6" fontWeight={800} color="primary">SMARTPREP AI</Typography>
+            </Box>
 
-          <Typography variant="h5" fontWeight={800} mb={0.5}>Create Your Account</Typography>
-          <Typography variant="body2" color="text.secondary" mb={2.5}>
-            Start your personalized learning journey
-          </Typography>
+            <Typography variant="h5" fontWeight={800} mb={0.5}>Create Your Account</Typography>
+            <Typography variant="body2" color="text.secondary" mb={2.5}>
+              Start your personalized learning journey
+            </Typography>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <TextField label="Username"  fullWidth margin="dense" required value={form.username} onChange={update('username')} />
-            <TextField label="Email"     fullWidth margin="dense" required type="email" value={form.email} onChange={update('email')} />
-            <TextField
-              label="Password" fullWidth margin="dense" required
-              type={showPw ? 'text' : 'password'}
-              value={form.password} onChange={update('password')}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPw(!showPw)} edge="end" size="small">
-                      {showPw ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              label="Confirm Password" fullWidth margin="dense" required
-              type={showPw ? 'text' : 'password'}
-              value={form.confirm} onChange={update('confirm')}
-            />
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+              <TextField label="Username" fullWidth margin="dense" required value={form.username} onChange={update('username')} />
+              <TextField label="Email" fullWidth margin="dense" required type="email" value={form.email} onChange={update('email')} />
+              <TextField
+                label="Password" fullWidth margin="dense" required
+                type={showPw ? 'text' : 'password'}
+                value={form.password} onChange={update('password')}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPw(!showPw)} edge="end" size="small">
+                        {showPw ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                label="Confirm Password" fullWidth margin="dense" required
+                type={showPw ? 'text' : 'password'}
+                value={form.confirm} onChange={update('confirm')}
+              />
 
-            <Button
-              type="submit" variant="contained" fullWidth
-              sx={submitButtonSx}
-              disabled={loading}
-            >
-              {loading && (
-                <Box sx={spinnerOverlaySx}>
-                  <CircularProgress size={20} color="inherit" />
-                </Box>
-              )}
-              <span style={{ visibility: loading ? 'hidden' : 'visible' }}>Sign Up</span>
-            </Button>
-          </Box>
+              <Button
+                type="submit" variant="contained" fullWidth
+                sx={submitButtonSx}
+                disabled={loading}
+              >
+                {loading && (
+                  <Box sx={spinnerOverlaySx}>
+                    <CircularProgress size={20} color="inherit" />
+                  </Box>
+                )}
+                <span style={{ visibility: loading ? 'hidden' : 'visible' }}>Sign Up</span>
+              </Button>
+            </Box>
 
-          <Typography variant="body2" textAlign="center" mt={2} color="text.secondary">
-            Already have an account?{' '}
-            <Link to="/login" style={{ color: '#4f46e5', fontWeight: 700, textDecoration: 'none' }}>
-              Login
-            </Link>
-          </Typography>
-        </CardContent>
-      </Card>
+            <Typography variant="body2" textAlign="center" mt={2} color="text.secondary">
+              Already have an account?{' '}
+              <Link to="/login" style={{ color: '#4f46e5', fontWeight: 700, textDecoration: 'none' }}>
+                Login
+              </Link>
+            </Typography>
+          </CardContent>
+        </Card>
       </motion.div>
     </Box>
   );
