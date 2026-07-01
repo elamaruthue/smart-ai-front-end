@@ -53,7 +53,7 @@ const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
               startIcon={<GitHub />}
               onClick={() =>
                 window.open(
-                  "https://github.com/elamaruthue/smart-ai-front-end",
+                  "https://github.com/IndhuMukhi31/super-ai-front-end",
                   "_blank"
                 )
               }
@@ -66,7 +66,7 @@ const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
               startIcon={<GitHub />}
               onClick={() =>
                 window.open(
-                  "https://github.com/elamaruthue/smart-ai-back-end",
+                  "https://github.com/IndhuMukhi31/super-ai-back-end.git",
                   "_blank"
                 )
               }
