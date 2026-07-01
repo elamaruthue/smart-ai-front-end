@@ -15,6 +15,7 @@ import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import { useApp } from '../context/AppContext';
 import { logoPng } from '@/assets';
 import { logoBoxSx } from '@/styles/common';
+import { Article } from '@mui/icons-material';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -176,10 +177,10 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
             <Typography sx={{ px: 2.5, py: 0.5, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(251,191,36,0.7)' }}>
               Admin
             </Typography>
-            {['/course-editor', '/day-quiz-editor', '/interview-quiz-editor', '/question-set'].map((path, i) => {
+            {['/course-editor', '/day-quiz-editor', '/interview-quiz-editor', '/question-set', '/doc'].map((path, i) => {
               const active = location.pathname === path;
-              const labels = ['Course Editor', 'Day Quiz Editor', 'Interview Quiz Editor', 'Question Set'];
-              const icons = [<AdminPanelSettingsIcon fontSize="small" />, <EditCalendarIcon fontSize="small" />, <QuestionAnswer />, <QuizOutlinedIcon fontSize="small" />];
+              const labels = ['Course Editor', 'Day Quiz Editor', 'Interview Quiz Editor', 'Question Set', 'Doc'];
+              const icons = [<AdminPanelSettingsIcon fontSize="small" />, <EditCalendarIcon fontSize="small" />, <QuestionAnswer />, <QuizOutlinedIcon fontSize="small" />, <Article />];
               return (
                 <Box key={path} component={Link} to={path} onClick={onMobileClose} sx={{
                   ...navItemSx(active),

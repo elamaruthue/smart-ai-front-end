@@ -26,6 +26,8 @@ const DayQuizEditor = lazy(() => import('./pages/DayQuizEditor'));
 const QuestionSet = lazy(() => import('./pages/QuestionSet'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const InterViewQuizEditor = lazy(() => import('./pages/NotFound'));
+const Doc = lazy(() => import('./pages/Doc'));
+
 interface ProtectedRouteProps {
   children: ReactNode;
 }
@@ -121,6 +123,14 @@ const AppRoutes = () => {
           element={
             <SuperuserRoute>
               <InterViewQuizEditor />
+            </SuperuserRoute>
+          }
+        />
+        <Route 
+          path='/doc'
+          element={
+            <SuperuserRoute>
+              <Doc />
             </SuperuserRoute>
           }
         />
