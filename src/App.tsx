@@ -25,7 +25,7 @@ const CourseEditor = lazy(() => import('./pages/CourseEditor'));
 const DayQuizEditor = lazy(() => import('./pages/DayQuizEditor'));
 const QuestionSet = lazy(() => import('./pages/QuestionSet'));
 const NotFound = lazy(() => import('./pages/NotFound'));
-const InterViewQuizEditor = lazy(() => import('./pages/NotFound'));
+const InterViewQuizEditor = lazy(() => import('./pages/InterViewQuizEditor'));
 const Doc = lazy(() => import('./pages/Doc'));
 
 interface ProtectedRouteProps {
@@ -119,7 +119,7 @@ const AppRoutes = () => {
           }
         />
         <Route 
-          path='/interview-quiz-editor'
+          path='interview-quiz-editor'
           element={
             <SuperuserRoute>
               <InterViewQuizEditor />

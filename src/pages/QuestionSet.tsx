@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Box, Typography, Card, CardContent, Button, TextField,
-  MenuItem, Select, InputLabel, FormControl, FormHelperText,
-  RadioGroup, Radio, FormControlLabel, Chip, Alert, Divider,
-  IconButton, Tooltip, Collapse, CircularProgress, Snackbar,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+  RadioGroup, Radio, FormControl, FormControlLabel, Chip, Alert,
+  IconButton, Tooltip, CircularProgress, Snackbar, Tabs, Tab,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteForever";
 import EditIcon from "@mui/icons-material/Edit";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useCourseData } from "../hooks/useCourseData";
 import { getQuestions, createQuestion, deleteQuestion, updateQuestion } from "../api/questions";
 import type { Question, QuestionPayload } from "../api/questions";
@@ -19,11 +16,13 @@ import type { Question, QuestionPayload } from "../api/questions";
 const ANSWER_OPTIONS = ["A", "B", "C", "D"] as const;
 type AnswerKey = (typeof ANSWER_OPTIONS)[number];
 
+type QuestionForm = QuestionPayload;
+
 const OPTION_LABELS: Record<AnswerKey, keyof QuestionPayload> = {
   A: "option_a", B: "option_b", C: "option_c", D: "option_d",
 };
 
-const emptyForm = (): QuestionPayload => ({
+const emptyForm = (): QuestionForm => ({
   skill: "",
   day: 1,
   question: "",
@@ -39,17 +38,16 @@ export default function QuestionSet() {
   const { skills } = useCourseData();
   const skillKeys = useMemo(() => Object.keys(skills), [skills]);
 
-  const [questions, setQuestions]     = useState<Question[]>([]);
+    const [questions, setQuestions]     = useState<Question[]>([]);
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
   const [apiError, setApiError]       = useState("");
   const [snack, setSnack]             = useState("");
-  const [formOpen, setFormOpen]       = useState(true);
-  const [form, setForm]               = useState<QuestionPayload>(emptyForm());
+  const [form, setForm]               = useState<QuestionForm>(emptyForm());
   const [errors, setErrors]           = useState<Partial<Record<keyof QuestionPayload, string>>>({});
   const [editId, setEditId]           = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<Question | null>(null);
-  const [filterSkill, setFilterSkill] = useState("");
+  const [selectedSkill, setSelectedSkill] = useState<string>(skillKeys[0] ?? "");
 
   useEffect(() => {
     getQuestions()
@@ -58,35 +56,83 @@ export default function QuestionSet() {
       .finally(() => setLoading(false));
   }, []);
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const grouped = useMemo(() => {
+    return questions.reduce<Record<string, Question[]>>((acc, q) => {
+      if (!acc[q.skill]) acc[q.skill] = [];
+      acc[q.skill].push(q);
+      return acc;
+    }, {});
+  }, [questions]);
+
+  const skillTabs = useMemo(() => (skillKeys.length ? skillKeys : ["General"]), [skillKeys]);
+  const selectedQuestions = grouped[selectedSkill] ?? [];
+
   const validate = (): boolean => {
     const e: Partial<Record<keyof QuestionPayload, string>> = {};
-    if (form.skill.length === 0)        e.skill    = 'Skill is required';
-    if (!form.day || form.day < 1)     e.day      = 'Day must be >= 1';
-    if (form.question.trim().length === 0) e.question = 'Question text is required';
-    if (form.option_a.trim().length === 0) e.option_a = 'Option A is required';
-    if (form.option_b.trim().length === 0) e.option_b = 'Option B is required';
-    if (form.option_c.trim().length === 0) e.option_c = 'Option C is required';
-    if (form.option_d.trim().length === 0) e.option_d = 'Option D is required';
+    if (form.skill.length === 0) e.skill = "Skill is required";
+    if (!form.day || form.day < 1) e.day = "Day must be >= 1";
+    if (form.question.trim().length === 0) e.question = "Question text is required";
+    if (form.option_a.trim().length === 0) e.option_a = "Option A is required";
+    if (form.option_b.trim().length === 0) e.option_b = "Option B is required";
+    if (form.option_c.trim().length === 0) e.option_c = "Option C is required";
+    if (form.option_d.trim().length === 0) e.option_d = "Option D is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (validate() === false) return;
+  const resetForm = () => {
+    setForm(emptyForm());
+    setErrors({});
+    setEditId(null);
+  };
+
+  const openAdd = () => {
+    setEditId(null);
+    setForm({ ...emptyForm(), skill: selectedSkill || skillTabs[0] || "", day: 1 });
+    setErrors({});
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (q: Question) => {
+    setForm({
+      skill: q.skill,
+      day: q.day,
+      question: q.question,
+      option_a: q.option_a,
+      option_b: q.option_b,
+      option_c: q.option_c,
+      option_d: q.option_d,
+      answer: q.answer,
+      explanation: q.explanation ?? "",
+    });
+    setEditId(q._id);
+    setSelectedSkill(q.skill);
+    setDialogOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    resetForm();
+    setDialogOpen(false);
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
     setSaving(true);
     try {
+      const payload = { ...form, skill: form.skill || selectedSkill };
       if (editId) {
-        const updated = await updateQuestion(editId, form);
+        const updated = await updateQuestion(editId, payload);
         setQuestions((prev) => prev.map((q) => (q._id === editId ? updated : q)));
         setSnack("Question updated successfully");
-        setEditId(null);
       } else {
-        const created = await createQuestion(form);
+        const created = await createQuestion(payload);
         setQuestions((prev) => [...prev, created]);
         setSnack("Question created successfully");
       }
-      setForm(emptyForm());
-      setErrors({});
+      resetForm();
+      setDialogOpen(false);
     } catch {
       setApiError("Failed to save question. Check your connection.");
     } finally {
@@ -94,26 +140,8 @@ export default function QuestionSet() {
     }
   };
 
-  const handleEdit = (q: Question) => {
-    setForm({
-      skill: q.skill, day: q.day, question: q.question,
-      option_a: q.option_a, option_b: q.option_b,
-      option_c: q.option_c, option_d: q.option_d,
-      answer: q.answer, explanation: q.explanation ?? "",
-    });
-    setEditId(q._id);
-    setFormOpen(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleCancelEdit = () => {
-    setEditId(null);
-    setForm(emptyForm());
-    setErrors({});
-  };
-
   const handleDelete = async () => {
-    if (deleteDialog === null) return;
+    if (!deleteDialog) return;
     try {
       await deleteQuestion(deleteDialog._id);
       setQuestions((prev) => prev.filter((q) => q._id !== deleteDialog._id));
@@ -125,167 +153,161 @@ export default function QuestionSet() {
     }
   };
 
-  const setField = (key: keyof QuestionPayload, value: string | number) => {
+  const setField = (key: keyof QuestionForm, value: string | number) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
-  const filtered = filterSkill ? questions.filter((q) => q.skill === filterSkill) : questions;
-  const grouped = filtered.reduce<Record<string, Question[]>>((acc, q) => {
-    if (!acc[q.skill]) acc[q.skill] = [];
-    acc[q.skill].push(q);
-    return acc;
-  }, {});
+  useEffect(() => {
+    if (!selectedSkill && skillTabs.length > 0) {
+      setSelectedSkill(skillTabs[0]);
+    }
+  }, [selectedSkill, skillTabs]);
 
   return (
     <Box>
       {/* Header */}
       <Box sx={{ background: "linear-gradient(135deg,#dc2626,#f97316)", borderRadius: 3, p: 3, mb: 3, color: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Question Set Manager</Typography>
-          <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5 }}>Create and manage quiz questions — Superuser / Admin only</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>Mock Test Question Manager</Typography>
+          <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5 }}>Manage daily mock test items with the same editor experience.</Typography>
         </Box>
         <Chip label={questions.length + " Questions"} sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "#fff", fontWeight: 700, fontSize: 14 }} />
       </Box>
 
       {apiError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setApiError("")}>{apiError}</Alert>}
 
-      {/* Form */}
-      <Card sx={{ mb: 3, borderRadius: 3, border: editId ? "2px solid #f59e0b" : "2px solid #e0e7ff" }}>
-        <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: formOpen ? 2 : 0, cursor: "pointer" }} onClick={() => setFormOpen((p) => !p)}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: editId ? "#d97706" : "#4f46e5" }}>
-              {editId ? "Edit Question" : "Add New Question"}
-            </Typography>
-            <IconButton size="small">{formOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
-          </Box>
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Tabs value={selectedSkill} onChange={(_, value) => setSelectedSkill(value)} variant="scrollable" scrollButtons="auto" sx={{ minWidth: 320 }}>
+            {skillTabs.map((skill) => (
+              <Tab key={skill} label={skill} value={skill} />
+            ))}
+          </Tabs>
 
-          <Collapse in={formOpen}>
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 2, mb: 2 }}>
-              <FormControl error={!!errors.skill} fullWidth>
-                <InputLabel>Skill *</InputLabel>
-                <Select label="Skill *" value={form.skill} onChange={(e) => setField("skill", e.target.value as string)}>
-                  {skillKeys.map((sk) => <MenuItem key={sk} value={sk}>{sk}</MenuItem>)}
-                </Select>
-                {errors.skill && <FormHelperText>{errors.skill}</FormHelperText>}
-              </FormControl>
-              <TextField label="Day *" type="number" slotProps={{ htmlInput: { min: 1 } }} value={form.day}
-                onChange={(e) => setField("day", Number(e.target.value))}
-                error={!!errors.day} helperText={errors.day} />
-            </Box>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => { setApiError(""); setLoading(true); getQuestions().then(setQuestions).catch(() => setApiError("Failed to reload questions.")).finally(() => setLoading(false)); }} disabled={loading}>
+            {loading ? <CircularProgress size={16} /> : 'Reload'}
+          </Button>
 
-            <TextField label="Question *" fullWidth multiline minRows={2} sx={{ mb: 2 }}
-              value={form.question} onChange={(e) => setField("question", e.target.value)}
-              error={!!errors.question} helperText={errors.question} />
+          <Box sx={{ flex: 1 }} />
 
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2 }}>
-              {ANSWER_OPTIONS.map((letter) => {
-                const fkey = OPTION_LABELS[letter];
-                return (
-                  <TextField key={letter} label={"Option " + letter + " *"} fullWidth
-                    value={form[fkey] as string}
-                    onChange={(e) => setField(fkey, e.target.value)}
-                    error={!!errors[fkey]} helperText={errors[fkey]}
-                    slotProps={{ input: { startAdornment: (
-                      <Chip label={letter} size="small" sx={{ mr: 1, minWidth: 24, bgcolor: form.answer === letter ? "#4f46e5" : "#eef2ff", color: form.answer === letter ? "#fff" : "#4f46e5", fontWeight: 700 }} />
-                    )}}}
-                  />
-                );
-              })}
-            </Box>
-
-            <Box sx={{ mb: 2, p: 2, bgcolor: "#f5f3ff", borderRadius: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1, color: "#4f46e5" }}>Correct Answer</Typography>
-              <FormControl component="fieldset">
-                <RadioGroup row value={form.answer} onChange={(e) => setField("answer", e.target.value)}>
-                  {ANSWER_OPTIONS.map((letter) => (
-                    <FormControlLabel key={letter} value={letter}
-                      control={<Radio sx={{ "&.Mui-checked": { color: "#4f46e5" } }} />}
-                      label={<Typography sx={{ fontWeight: form.answer === letter ? 700 : 400 }}>{letter}</Typography>}
-                    />
-                  ))}
-                </RadioGroup>
-              </FormControl>
-            </Box>
-
-            <TextField label="Explanation (optional)" fullWidth multiline minRows={2} sx={{ mb: 2 }}
-              value={form.explanation} onChange={(e) => setField("explanation", e.target.value)} />
-
-            <Box sx={{ display: "flex", gap: 1.5 }}>
-              <Button variant="contained" disabled={saving}
-                startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <AddCircleOutlineIcon />}
-                onClick={handleSubmit}
-                sx={{ bgcolor: editId ? "#d97706" : "#4f46e5", "&:hover": { bgcolor: editId ? "#b45309" : "#4338ca" }, fontWeight: 700 }}>
-                {saving ? "Saving..." : editId ? "Update Question" : "Save Question"}
-              </Button>
-              {editId && <Button variant="outlined" onClick={handleCancelEdit}>Cancel</Button>}
-            </Box>
-          </Collapse>
+          <Button variant="contained" startIcon={<AddCircleOutlineIcon />} onClick={openAdd}>
+            Add Question
+          </Button>
         </CardContent>
       </Card>
 
-      {/* List */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>All Questions</Typography>
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Filter by Skill</InputLabel>
-          <Select label="Filter by Skill" value={filterSkill} onChange={(e) => setFilterSkill(e.target.value)}>
-            <MenuItem value="">All Skills</MenuItem>
-            {skillKeys.map((sk) => <MenuItem key={sk} value={sk}>{sk}</MenuItem>)}
-          </Select>
-        </FormControl>
-      </Box>
-
       {loading ? (
-        <Box sx={{ textAlign: "center", py: 6 }}><CircularProgress sx={{ color: "#4f46e5" }} /><Typography sx={{ mt: 2 }} color="text.secondary">Loading questions...</Typography></Box>
-      ) : filtered.length === 0 ? (
-        <Alert severity="info">No questions yet. Use the form above to add the first question.</Alert>
+        <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress sx={{ color: '#4f46e5' }} /><Typography sx={{ mt: 2 }} color="text.secondary">Loading questions...</Typography></Box>
+      ) : selectedQuestions.length === 0 ? (
+        <Alert severity="info">No questions for {selectedSkill} yet.</Alert>
       ) : (
-        Object.entries(grouped).map(([skill, qs]) => (
-          <Box key={skill} sx={{ mb: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#4f46e5" }}>{skills[skill]?.icon ?? ""} {skill}</Typography>
-              <Chip label={qs.length + " questions"} size="small" sx={{ bgcolor: "#eef2ff", color: "#4f46e5" }} />
-            </Box>
-            <TableContainer component={Paper} sx={{ borderRadius: 3, border: "1px solid #e0e7ff" }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: "#f5f3ff" }}>
-                    <TableCell sx={{ fontWeight: 700, width: 50 }}>Day</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Question</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>A</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>B</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>C</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>D</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: 70 }}>Answer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: 80 }} align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {qs.map((q) => (
-                    <TableRow key={q._id} hover sx={{ "&:last-child td": { border: 0 } }}>
-                      <TableCell><Chip label={"D" + q.day} size="small" sx={{ bgcolor: "#e0e7ff", color: "#3730a3", fontWeight: 700 }} /></TableCell>
-                      <TableCell sx={{ maxWidth: 260 }}>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{q.question}</Typography>
-                        {q.explanation && <Typography sx={{ fontSize: 11, color: "#6b7280", mt: 0.5 }}>💡 {q.explanation}</Typography>}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: 12 }}>{q.option_a}</TableCell>
-                      <TableCell sx={{ fontSize: 12 }}>{q.option_b}</TableCell>
-                      <TableCell sx={{ fontSize: 12 }}>{q.option_c}</TableCell>
-                      <TableCell sx={{ fontSize: 12 }}>{q.option_d}</TableCell>
-                      <TableCell><Chip label={q.answer} size="small" sx={{ bgcolor: "#dcfce7", color: "#166534", fontWeight: 800 }} /></TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="Edit"><IconButton size="small" onClick={() => handleEdit(q)} sx={{ color: "#4f46e5" }}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog(q)} sx={{ color: "#ef4444" }}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
+        selectedQuestions.map((q) => (
+          <Card key={q._id} sx={{ mb: 2, borderRadius: 3, border: '1px solid #e2e8f0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Chip label={`Day ${q.day}`} size="small" sx={{ bgcolor: '#eef2ff', color: '#4f46e5', fontWeight: 700 }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{q.question}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mt: 2 }}>
+                    {ANSWER_OPTIONS.map((letter) => {
+                      const field = OPTION_LABELS[letter];
+                      const optionText = q[field] as string;
+                      return (
+                        <Box key={letter} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: letter === q.answer ? '#f0fdf4' : '#f8fafc', border: `1px solid ${letter === q.answer ? '#22c55e' : '#e2e8f0'}`, color: letter === q.answer ? '#166534' : '#475569' }}>
+                          <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{letter}. {optionText}</Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                  {q.explanation && <Typography sx={{ mt: 2, fontSize: 13, color: '#475569' }}>💡 {q.explanation}</Typography>}
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Tooltip title="Edit"><IconButton size="small" onClick={() => handleEdit(q)} sx={{ color: '#4f46e5' }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                  <Tooltip title="Delete"><IconButton size="small" onClick={() => setDeleteDialog(q)} sx={{ color: '#ef4444' }}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         ))
       )}
+
+      <Dialog open={dialogOpen} onClose={handleCancelEdit} fullWidth maxWidth="sm">
+        <DialogTitle>{editId ? 'Edit Question' : 'Add Question'}</DialogTitle>
+        <DialogContent dividers>
+          <TextField
+            fullWidth size="small" label="Question text" multiline minRows={2}
+            value={form.question}
+            onChange={(e) => setField('question', e.target.value)}
+            error={!!errors.question}
+            helperText={errors.question}
+            sx={{ mb: 2 }}
+          />
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+            <TextField
+              label="Day *"
+              type="number"
+              value={form.day}
+              onChange={(e) => setField('day', Math.max(1, Number(e.target.value) || 1))}
+              error={!!errors.day}
+              helperText={errors.day}
+            />
+            <TextField
+              label="Skill"
+              value={selectedSkill}
+              disabled
+              fullWidth
+            />
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+            {ANSWER_OPTIONS.map((letter) => {
+              const field = OPTION_LABELS[letter];
+              return (
+                <TextField
+                  key={letter}
+                  size="small"
+                  label={`Option ${letter}`}
+                  value={form[field] as string}
+                  onChange={(e) => setField(field, e.target.value)}
+                  error={!!errors[field]}
+                  helperText={errors[field]}
+                />
+              );
+            })}
+          </Box>
+          <Box sx={{ mb: 2, p: 2, bgcolor: '#f5f3ff', borderRadius: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1, color: '#4f46e5' }}>Correct Answer</Typography>
+            <FormControl component="fieldset">
+              <RadioGroup row value={form.answer} onChange={(e) => setField('answer', e.target.value)}>
+                {ANSWER_OPTIONS.map((letter) => (
+                  <FormControlLabel
+                    key={letter}
+                    value={letter}
+                    control={<Radio sx={{ '&.Mui-checked': { color: '#4f46e5' } }} />}
+                    label={<Typography sx={{ fontWeight: form.answer === letter ? 700 : 400 }}>{letter}</Typography>}
+                  />
+                ))}
+              </RadioGroup>
+            </FormControl>
+          </Box>
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            label="Explanation (optional)"
+            value={form.explanation}
+            onChange={(e) => setField('explanation', e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelEdit}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving} startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <AddCircleOutlineIcon />}>
+            {editId ? 'Update Question' : 'Save Question'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete dialog */}
       <Dialog open={!!deleteDialog} onClose={() => setDeleteDialog(null)}>

@@ -1,3 +1,5 @@
+import { updateCourseSection } from '@/api/courseData';
+import { InterviewQuestion, MockQuestion, QuizQuestion } from '@/data/courseData';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // import { getinterViewDataApi, updateCourseSection } from '../../api/interViewData';
 // import type { interViewDataPayload } from '../../api/interViewData';
@@ -17,25 +19,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // } from '../../data/interViewData';
 
 // ─── State ────────────────────────────────────────────────────────────────────
-interface interViewDataState {
-  paths:               PathData[];
-  skills:              Record<string, SkillData>;
-  quizBank:            Record<string, QuizQuestion[]>;
-  interviewQuestions:  Record<string, Record<string, InterviewQuestion[]>>;
-  mockTestQuestions:   MockQuestion[];
-  loading:             boolean;
-  saving:              boolean;
-  error:               string | null;
-  lastFetched:         number | null;
-}
 
-const initialState: interViewDataState = {
+const initialState: any = {
   // Seed with static data so the app works even before the API responds
-  paths:               localPaths,
-  skills:              localSkills,
-  quizBank:            localQuizBank,
-  interviewQuestions:  localInterviewQs,
-  mockTestQuestions:   localMockQs,
+  paths:               null,
+  skills:              null,
+  quizBank:            null,
+  interviewQuestions:  null,
+  mockTestQuestions:   null,
   loading:             false,
   saving:              false,
   error:               null,
@@ -46,12 +37,12 @@ const initialState: interViewDataState = {
 
 /** Fetch all course sections from the backend API */
 export const fetchinterViewData = createAsyncThunk<
-  interViewDataPayload,
+  any,
   void,
   { rejectValue: string }
 >('interViewData/fetch', async (_, { rejectWithValue }) => {
   try {
-    return await getinterViewDataApi();
+    // return await getinterViewDataApi();
   } catch (err: unknown) {
     const msg = (err as { response?: { data?: { error?: string } } })
       ?.response?.data?.error ?? 'Failed to load course data';

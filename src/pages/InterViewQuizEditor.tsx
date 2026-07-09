@@ -1,192 +1,154 @@
-import { useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
-  Box, Typography, Card, CardContent, Button, Alert,
-  MenuItem, Select, InputLabel, FormControl, CircularProgress,
-  Chip,
+  Box, Typography, Card, CardContent, Button, Alert, Chip, CircularProgress,
+  MenuItem, Select, InputLabel, FormControl as MuiFormControl
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
+import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchinterViewData, saveCourseSection } from '../store/slices/interviewDataSlice';
-
-type Section = 'paths' | 'skills' | 'quizBank' | 'interviewQuestions' | 'mockTestQuestions';
-
-const SECTION_LABELS: Record<Section, string> = {
-  paths:               'Learning Paths',
-  skills:              'Skills & Days',
-  quizBank:            'Quiz Bank',
-  interviewQuestions:  'Interview Questions',
-  mockTestQuestions:   'Mock Test Questions',
-};
+import CategoryTabs from '../components/Interview/CategoryTabs';
+import QuestionCard from '../components/Interview/QuestionCard';
+import QuestionForm from '../components/Interview/QuestionForm';
+import type { InterviewQuestion, PathData } from '../data/courseData';
 
 export default function InterViewQuizEditor() {
   const dispatch = useAppDispatch();
-  const interViewData = useAppSelector((s) => s.interViewData);
-  const user       = useAppSelector((s) => s.auth.user);
+  const interView = useAppSelector((s) => s.interViewData);
+  const course    = useAppSelector((s) => s.courseData);
+  const user      = useAppSelector((s) => s.auth.user);
 
-  const [section,  setSection]  = useState<Section>('paths');
-  const [draft,    setDraft]    = useState('');
-  const [editing,  setEditing]  = useState(false);
-  const [jsonError, setJsonError] = useState<string | null>(null);
-  const [saved,    setSaved]    = useState(false);
+  const paths: PathData[] = (interView?.paths ?? course?.paths) ?? [];
+  const interviewSections = interView?.interviewQuestions ?? course?.interviewQuestions ?? {};
+  const loading = interView?.loading ?? course?.loading ?? false;
+  const saving  = interView?.saving ?? course?.saving ?? false;
+
+  const pathIds = useMemo(() => paths.map((p) => p.id), [paths]);
+  const [selectedPath, setSelectedPath] = useState<string>(pathIds[0] ?? '');
+  console.log('selectedPath', selectedPath);
+  
+  const categories = useMemo(() => Object.keys(interviewSections[selectedPath] ?? {}), [interviewSections, selectedPath]);
+  const [selectedCategory, setSelectedCategory] = useState<string>(categories[0] ?? '');
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editingItem, setEditingItem] = useState<InterviewQuestion | undefined>(undefined);
 
   const role = user?.role ?? 'user';
   const canEdit = role === 'superuser' || role === 'admin';
 
-  const handleEdit = () => {
-    const raw = JSON.stringify(interViewData[section as keyof typeof interViewData], null, 2);
-    setDraft(raw);
-    setJsonError(null);
-    setSaved(false);
-    setEditing(true);
+  useEffect(() => {
+    if (!selectedPath && pathIds.length > 0) setSelectedPath(pathIds[0]);
+  }, [pathIds, selectedPath]);
+
+  useEffect(() => {
+    if (!selectedCategory && categories.length > 0) setSelectedCategory(categories[0]);
+  }, [categories, selectedCategory]);
+
+  const questions: InterviewQuestion[] = (interviewSections[selectedPath] ?? {})[selectedCategory] ?? [];
+
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const openAdd = () => {
+    setEditingIdx(null);
+    setEditingItem(undefined);
+    setDialogOpen(true);
   };
 
-  const handleSave = async () => {
-    let parsed: unknown;
+  const openEdit = (idx: number) => {
+    setEditingIdx(idx);
+    setEditingItem(questions[idx]);
+    setDialogOpen(true);
+  };
+
+  const persist = async (newArr: InterviewQuestion[]) => {
     try {
-      parsed = JSON.parse(draft);
-      setJsonError(null);
-    } catch (e: unknown) {
-      setJsonError((e as Error).message);
-      return;
-    }
-
-    const result = await dispatch(saveCourseSection({ section, data: parsed }));
-    if (saveCourseSection.fulfilled.match(result)) {
-      setSaved(true);
-      setEditing(false);
+      const updated = {
+        ...interviewSections,
+        [selectedPath]: {
+          ...(interviewSections[selectedPath] ?? {}),
+          [selectedCategory]: newArr,
+        },
+      };
+      const result = await dispatch(saveCourseSection({ section: 'interviewQuestions', data: updated }));
+      if (saveCourseSection.fulfilled.match(result)) {
+        setSuccessMsg('Saved successfully');
+        setTimeout(() => setSuccessMsg(null), 3000);
+      }
+    } catch (err: unknown) {
+      setErrorMsg('Save failed');
+      setTimeout(() => setErrorMsg(null), 3000);
     }
   };
 
-  const handleRefresh = () => {
+  const handleSave = async (payload: InterviewQuestion & { difficulty?: string; tags?: string[] }) => {
+    if (!selectedPath || !selectedCategory) return;
+    const arr = [...questions];
+    if (editingIdx === null) {
+      arr.push(payload);
+    } else {
+      arr[editingIdx] = payload;
+    }
+    await persist(arr);
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (idx: number) => persist(questions.filter((_, i) => i !== idx));
+
+  const handleReload = () => {
     dispatch(fetchinterViewData());
-    setEditing(false);
-    setSaved(false);
+    setSuccessMsg(null);
+    setErrorMsg(null);
   };
 
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>Course Editor 🎓</Typography>
-        <Chip
-          label={role.toUpperCase()}
-          size="small"
-          sx={{
-            fontWeight: 700,
-            bgcolor: role === 'superuser' ? 'error.main' : 'warning.main',
-            color: '#fff',
-          }}
-        />
+        <Typography variant="h4" sx={{ fontWeight: 800 }}>Interview Quiz Editor</Typography>
+        <Chip label={role.toUpperCase()} size="small" sx={{ fontWeight: 700, bgcolor: role === 'superuser' ? 'error.main' : 'warning.main', color: '#fff' }} />
       </Box>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        View and edit course content. Changes are saved to the database and served to all users.
-      </Typography>
 
-      {!canEdit && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          You have read-only access. Only <strong>admin</strong> and <strong>superuser</strong> accounts can save changes.
-        </Alert>
-      )}
+      {!canEdit && <Alert severity="warning" sx={{ mb: 2 }}>Read-only access — only admin / superuser can save changes.</Alert>}
+      {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
+      {errorMsg && <Alert severity="error" sx={{ mb: 2 }}>{errorMsg}</Alert>}
 
-      {/* Section selector */}
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel>Section</InputLabel>
-            <Select
-              value={section}
-              label="Section"
-              onChange={(e) => { setSection(e.target.value as Section); setEditing(false); setSaved(false); }}
-            >
-              {(Object.keys(SECTION_LABELS) as Section[]).map((s) => (
-                <MenuItem key={s} value={s}>{SECTION_LABELS[s]}</MenuItem>
+          <MuiFormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel>Learning Path</InputLabel>
+            <Select value={selectedPath} label="Learning Path" onChange={(e) => { setSelectedPath(e.target.value); setSelectedCategory(''); }}>
+              {paths.map((p) => (
+                <MenuItem key={p.id} value={p.id}>{p.icon} {p.title}</MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </MuiFormControl>
 
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={interViewData.loading}
-          >
-            {interViewData.loading ? <CircularProgress size={16} /> : 'Reload from DB'}
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleReload} disabled={loading}>
+            {loading ? <CircularProgress size={16} /> : 'Reload'}
           </Button>
 
-          {canEdit && !editing && (
-            <Button variant="contained" startIcon={<EditIcon />} onClick={handleEdit}>
-              Edit
+          <Box sx={{ flex: 1 }} />
+
+          {canEdit && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
+              Add Question
             </Button>
           )}
-          {editing && (
-            <>
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={interViewData.saving ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <SaveIcon />}
-                onClick={handleSave}
-                disabled={interViewData.saving}
-              >
-                Save to DB
-              </Button>
-              <Button variant="outlined" onClick={() => setEditing(false)}>Cancel</Button>
-            </>
-          )}
         </CardContent>
       </Card>
 
-      {/* Status messages */}
-      {saved     && <Alert severity="success" sx={{ mb: 2 }}>Section saved successfully!</Alert>}
-      {interViewData.error && <Alert severity="error" sx={{ mb: 2 }}>{interViewData.error}</Alert>}
-      {jsonError && <Alert severity="error" sx={{ mb: 2 }}>Invalid JSON: {jsonError}</Alert>}
+      <CategoryTabs categories={categories} value={selectedCategory} onChange={(c) => setSelectedCategory(c)} />
 
-      {/* JSON editor / viewer */}
-      <Card>
-        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-          <Box
-            sx={{
-              px: 2, py: 1,
-              bgcolor: 'grey.100',
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-              {SECTION_LABELS[section]}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {editing ? 'Editing — JSON must be valid before saving' : 'Read-only view'}
-            </Typography>
-          </Box>
+      {(!selectedPath || categories.length === 0) && (
+        <Alert severity="info">No categories found for the selected path.</Alert>
+      )}
 
-          <Box
-            component="textarea"
-            value={editing ? draft : JSON.stringify(interViewData[section as keyof typeof interViewData], null, 2)}
-            onChange={(e) => setDraft(e.target.value)}
-            readOnly={!editing}
-            spellCheck={false}
-            sx={{
-              width: '100%',
-              minHeight: 520,
-              p: 2,
-              fontFamily: '"Fira Code", "Cascadia Code", monospace',
-              fontSize: 12,
-              lineHeight: 1.6,
-              border: 'none',
-              outline: 'none',
-              resize: 'vertical',
-              bgcolor: editing ? '#1e1b4b0a' : 'transparent',
-              color: 'text.primary',
-              boxSizing: 'border-box',
-              cursor: editing ? 'text' : 'default',
-            }}
-          />
-        </CardContent>
-      </Card>
+      {questions.map((q, i) => (
+        <QuestionCard key={i} question={q as any} index={i} onEdit={openEdit} onDelete={handleDelete} canEdit={canEdit} />
+      ))}
+
+      <QuestionForm open={dialogOpen} initial={editingItem as any} onSave={handleSave} onCancel={() => setDialogOpen(false)} saving={saving} />
     </Box>
   );
 }

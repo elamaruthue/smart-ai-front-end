@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Button, Alert,
+  Tabs, Tab, CircularProgress, TextField, Radio, RadioGroup,
+  FormControlLabel, Chip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   MenuItem, Select, InputLabel, FormControl as MuiFormControl,
-  CircularProgress, TextField, Radio, RadioGroup,
-  FormControlLabel, Chip, IconButton,
 } from '@mui/material';
 import AddIcon        from '@mui/icons-material/Add';
 import DeleteIcon     from '@mui/icons-material/Delete';
@@ -12,7 +12,7 @@ import EditIcon       from '@mui/icons-material/Edit';
 import RefreshIcon    from '@mui/icons-material/Refresh';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { saveCourseSection, fetchCourseData } from '../store/slices/courseDataSlice';
-import type { QuizQuestion, SkillData, DayData } from '../data/courseData';
+import type { QuizQuestion, SkillData, DayData, MockQuestion } from '../data/courseData';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -24,7 +24,7 @@ interface QuestionForm {
 
 const emptyForm = (): QuestionForm => ({ q: '', options: ['', '', '', ''], answer: 0 });
 
-// ─── Inline form ──────────────────────────────────────────────────────────────
+// Reusable dialog form for mock questions
 interface FormProps {
   form: QuestionForm;
   onChange: (field: keyof QuestionForm, value: unknown) => void;
@@ -34,300 +34,198 @@ interface FormProps {
   saving: boolean;
 }
 
-function QuestionFormFields({ form, onChange, onOptionChange, onSave, onCancel, saving }: FormProps) {
+function QuestionFormDialog({ form, onChange, onOptionChange, onSave, onCancel, saving }: FormProps) {
   return (
-    <Box>
-      <TextField
-        fullWidth size="small" label="Question text" multiline minRows={2}
-        value={form.q}
-        onChange={(e) => onChange('q', e.target.value)}
-        sx={{ mb: 2 }}
-      />
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2 }}>
-        {form.options.map((opt, i) => (
-          <TextField
-            key={i} size="small" label={`Option ${LETTERS[i]}`}
-            value={opt} onChange={(e) => onOptionChange(i, e.target.value)}
-          />
-        ))}
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: 13, mb: 0.5 }}>Correct Answer</Typography>
-        <RadioGroup row value={form.answer} onChange={(e) => onChange('answer', Number(e.target.value))}>
-          {LETTERS.map((l, i) => (
-            <FormControlLabel key={i} value={i} control={<Radio size="small" />} label={l} />
+    <Dialog open onClose={onCancel} fullWidth maxWidth="sm">
+      <DialogTitle>{form.q ? 'Edit Question' : 'Add Question'}</DialogTitle>
+      <DialogContent dividers>
+        <TextField
+          fullWidth size="small" label="Question text" multiline minRows={2}
+          value={form.q}
+          onChange={(e) => onChange('q', e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2 }}>
+          {form.options.map((opt, i) => (
+            <TextField
+              key={i} size="small" label={`Option ${LETTERS[i]}`}
+              value={opt} onChange={(e) => onOptionChange(i, e.target.value)}
+            />
           ))}
-        </RadioGroup>
-      </Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button variant="contained" size="small" startIcon={saving ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <SaveIcon />} onClick={onSave} disabled={saving}>
-          Save
-        </Button>
-        <Button variant="outlined" size="small" onClick={onCancel} disabled={saving}>Cancel</Button>
-      </Box>
-    </Box>
+        </Box>
+        <Box sx={{ mb: 2 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: 13, mb: 0.5 }}>Correct Answer</Typography>
+          <RadioGroup row value={form.answer} onChange={(e) => onChange('answer', Number(e.target.value))}>
+            {LETTERS.map((l, i) => (
+              <FormControlLabel key={i} value={i} control={<Radio size="small" />} label={l} />
+            ))}
+          </RadioGroup>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button variant="outlined" onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button variant="contained" startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />} onClick={onSave} disabled={saving}>Save</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DayQuizEditor() {
-  const dispatch  = useAppDispatch();
-  const { skills, loading, saving } = useAppSelector((s) => s.courseData);
-  const user      = useAppSelector((s) => s.auth.user);
+  // Weekly Mock Test Editor (replaces Day Quiz Editor)
+  const dispatch = useAppDispatch();
+  const course = useAppSelector((s) => s.courseData);
+  const inter = useAppSelector((s) => s.interViewData);
+  const user = useAppSelector((s) => s.auth.user);
 
-  const skillNames = Object.keys(skills);
+  // Prefer admin/interview slice mockTestQuestions when present
+  const rawMockQs: any[] = (inter && inter.mockTestQuestions && inter.mockTestQuestions.length > 0)
+    ? inter.mockTestQuestions
+    : course.mockTestQuestions ?? [];
 
-  const [selectedSkill, setSelectedSkill] = useState(skillNames[0] ?? '');
-  const [selectedDay,   setSelectedDay]   = useState(1);
-  const [addingNew,     setAddingNew]     = useState(false);
-  const [editingIdx,    setEditingIdx]    = useState<number | null>(null);
-  const [form,          setForm]          = useState<QuestionForm>(emptyForm());
-  const [saveOk,        setSaveOk]        = useState(false);
-  const [formError,     setFormError]     = useState<string | null>(null);
+  // Group by skill field if present, otherwise put into 'General'
+  const grouped = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    for (const q of rawMockQs) {
+      const skill = q.skill ?? 'General';
+      if (!map[skill]) map[skill] = [];
+      map[skill].push(q);
+    }
+    return map;
+  }, [rawMockQs]);
 
-  const role    = user?.role ?? 'user';
+  const skillTabs = useMemo(() => Object.keys(grouped).length ? Object.keys(grouped) : ['General'], [grouped]);
+  const [selectedSkill, setSelectedSkill] = useState<string>(skillTabs[0] ?? 'General');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [form, setForm] = useState<QuestionForm>(emptyForm());
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const role = user?.role ?? 'user';
   const canEdit = role === 'superuser' || role === 'admin';
 
-  const skillData: SkillData | undefined  = skills[selectedSkill];
-  const dayData:   DayData   | undefined  = skillData?.days.find((d) => d.day === selectedDay);
-  const dayQuestions: QuizQuestion[]      = dayData?.questions ?? [];
+  const questions = grouped[selectedSkill] ?? [];
+  const loading = course.loading || inter?.loading;
+  const saving = course.saving || inter?.saving;
 
-  // ── form helpers ─────────────────────────────────────────────────────────
-  const handleFormChange = (field: keyof QuestionForm, value: unknown) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const openAdd = () => { setEditingIdx(null); setForm(emptyForm()); setDialogOpen(true); };
+  const openEdit = (idx: number) => { const q = questions[idx]; setEditingIdx(idx); setForm({ q: q.q, options: q.options as [string,string,string,string], answer: q.answer }); setDialogOpen(true); };
 
-  const handleOptionChange = (idx: number, val: string) => {
-    const opts = [...form.options] as [string, string, string, string];
-    opts[idx] = val;
-    setForm((prev) => ({ ...prev, options: opts }));
-  };
+  const handleFormChange = (field: keyof QuestionForm, value: unknown) => setForm((p) => ({ ...p, [field]: value }));
+  const handleOptionChange = (idx: number, val: string) => { const opts = [...form.options] as [string,string,string,string]; opts[idx] = val; setForm((p) => ({ ...p, options: opts })); };
 
-  const validate = (): boolean => {
-    if (!form.q.trim())                        { setFormError('Question text is required.'); return false; }
-    if (form.options.some((o) => !o.trim()))   { setFormError('All 4 options are required.'); return false; }
-    setFormError(null);
+  const validate = () => {
+    if (!form.q.trim()) { setErrorMsg('Question text required'); setTimeout(() => setErrorMsg(null), 3000); return false; }
+    if (form.options.some((o) => !o.trim())) { setErrorMsg('All 4 options are required'); setTimeout(() => setErrorMsg(null), 3000); return false; }
     return true;
   };
 
-  // ── persist to DB ─────────────────────────────────────────────────────────
-  const persist = async (newQuestions: QuizQuestion[]) => {
-    const updatedSkills = {
-      ...skills,
-      [selectedSkill]: {
-        ...skillData!,
-        days: skillData!.days.map((d) =>
-          d.day === selectedDay ? { ...d, questions: newQuestions } : d
-        ),
-      },
-    };
-    const result = await dispatch(saveCourseSection({ section: 'skills', data: updatedSkills }));
-    if (saveCourseSection.fulfilled.match(result)) {
-      setSaveOk(true);
-      setTimeout(() => setSaveOk(false), 3000);
+  const persist = async (updatedArray: any[]) => {
+    try {
+      // flatten: replace all questions for the selected skill with updatedArray, keep others
+      const remaining = rawMockQs.filter((q) => (q.skill ?? 'General') !== selectedSkill);
+      const combined = [...remaining, ...updatedArray.map((q) => ({ ...q, skill: selectedSkill }))];
+      const result = await dispatch(saveCourseSection({ section: 'mockTestQuestions', data: combined }));
+      if (saveCourseSection.fulfilled.match(result)) {
+        setSuccessMsg('Saved successfully');
+        setTimeout(() => setSuccessMsg(null), 3000);
+      }
+    } catch (err) {
+      setErrorMsg('Save failed');
+      setTimeout(() => setErrorMsg(null), 3000);
     }
   };
 
-  const handleAdd = async () => {
-    if (!validate()) return;
-    await persist([...dayQuestions, { q: form.q, options: form.options, answer: form.answer }]);
-    setForm(emptyForm());
-    setAddingNew(false);
+  const handleSave = async () => {
+    if (!validate() || !selectedSkill) return;
+    const arr = [...questions];
+    const payload = { q: form.q, options: form.options, answer: form.answer, skill: selectedSkill };
+    if (editingIdx === null) {
+      arr.push(payload);
+    } else {
+      arr[editingIdx] = payload;
+    }
+    await persist(arr);
+    setDialogOpen(false);
   };
 
-  const handleSaveEdit = async () => {
-    if (editingIdx === null || !validate()) return;
-    const updated = dayQuestions.map((q, i) =>
-      i === editingIdx ? { q: form.q, options: form.options, answer: form.answer } : q
-    );
-    await persist(updated);
-    setEditingIdx(null);
-    setForm(emptyForm());
+  const handleDelete = async (idx: number) => {
+    const arr = questions.filter((_, i) => i !== idx);
+    await persist(arr);
   };
 
-  const handleDelete = (idx: number) =>
-    persist(dayQuestions.filter((_, i) => i !== idx));
-
-  const startEdit = (idx: number) => {
-    const q = dayQuestions[idx];
-    setForm({ q: q.q, options: q.options as [string, string, string, string], answer: q.answer });
-    setEditingIdx(idx);
-    setAddingNew(false);
-    setFormError(null);
-  };
-
-  const handleSkillChange = (skill: string) => {
-    setSelectedSkill(skill);
-    setSelectedDay(1);
-    setAddingNew(false);
-    setEditingIdx(null);
-    setForm(emptyForm());
-  };
+  const handleReload = () => { dispatch(fetchCourseData()); setSuccessMsg(null); setErrorMsg(null); };
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>Day Quiz Editor 📝</Typography>
-        <Chip
-          label={role.toUpperCase()} size="small"
-          sx={{ fontWeight: 700, bgcolor: role === 'superuser' ? 'error.main' : 'warning.main', color: '#fff' }}
-        />
+        <Typography variant="h4" sx={{ fontWeight: 800 }}>Weekly Mock Test Editor</Typography>
+        <Chip label={role.toUpperCase()} size="small" sx={{ fontWeight: 700, bgcolor: role === 'superuser' ? 'error.main' : 'warning.main', color: '#fff' }} />
       </Box>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Assign quiz questions to each skill day. Students see these questions when they click "Take Quiz" on that day.
-      </Typography>
 
-      {!canEdit && <Alert severity="warning" sx={{ mb: 3 }}>Read-only access — only admin / superuser can save changes.</Alert>}
-      {formError && <Alert severity="error"   sx={{ mb: 2 }} onClose={() => setFormError(null)}>{formError}</Alert>}
-      {saveOk   && <Alert severity="success"  sx={{ mb: 2 }}>Questions saved to database ✓</Alert>}
+      {!canEdit && <Alert severity="warning" sx={{ mb: 2 }}>Read-only access — only admin / superuser can save changes.</Alert>}
+      {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
+      {errorMsg && <Alert severity="error" sx={{ mb: 2 }}>{errorMsg}</Alert>}
 
-      {/* Selectors */}
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <MuiFormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Skill</InputLabel>
-            <Select value={selectedSkill} label="Skill" onChange={(e) => handleSkillChange(e.target.value)}>
-              {skillNames.map((s) => (
-                <MenuItem key={s} value={s}>{skills[s]?.icon} {skills[s]?.title}</MenuItem>
-              ))}
-            </Select>
-          </MuiFormControl>
+          <Tabs value={selectedSkill} onChange={(_, v) => { setSelectedSkill(v); }} variant="scrollable" scrollButtons="auto" sx={{ minWidth: 320 }}>
+            {skillTabs.map((s) => <Tab key={s} label={s} value={s} />)}
+          </Tabs>
 
-          <MuiFormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Day</InputLabel>
-            <Select
-              value={selectedDay} label="Day"
-              onChange={(e) => { setSelectedDay(Number(e.target.value)); setAddingNew(false); setEditingIdx(null); setForm(emptyForm()); }}
-            >
-              {skillData?.days.map((d) => (
-                <MenuItem key={d.day} value={d.day}>
-                  Day {d.day} — {d.topic.slice(0, 22)}{d.topic.length > 22 ? '…' : ''}
-                  {(d.questions?.length ?? 0) > 0 && (
-                    <Chip
-                      label={`${d.questions!.length}Q`} size="small"
-                      sx={{ ml: 1, height: 18, fontSize: 10, fontWeight: 700, bgcolor: '#eef2ff', color: '#4f46e5' }}
-                    />
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </MuiFormControl>
-
-          <Button
-            variant="outlined" startIcon={<RefreshIcon />}
-            onClick={() => dispatch(fetchCourseData())} disabled={loading}
-          >
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleReload} disabled={loading}>
             {loading ? <CircularProgress size={16} /> : 'Reload'}
           </Button>
+
+          <Box sx={{ flex: 1 }} />
+
+          {canEdit && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
+              Add Question
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      {/* Day topic summary */}
-      {dayData && (
-        <Card sx={{ mb: 3, bgcolor: '#eef2ff', border: '1px solid #c7d2fe' }}>
-          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <Typography sx={{ fontWeight: 700 }}>Day {dayData.day}: {dayData.topic}</Typography>
-            <Typography variant="body2" color="text.secondary">{dayData.subtopics.join(' · ')}</Typography>
-          </CardContent>
-        </Card>
+      {(questions.length === 0) && (
+        <Alert severity="info" sx={{ mb: 2 }}>No questions for {selectedSkill} yet.</Alert>
       )}
 
-      {/* Question list header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700 }}>
-          Questions for Day {selectedDay}
-          <Chip
-            label={dayQuestions.length} size="small"
-            sx={{ ml: 1, fontWeight: 700, bgcolor: '#eef2ff', color: '#4f46e5' }}
-          />
-        </Typography>
-        {canEdit && (
-          <Button
-            variant="contained" size="small" startIcon={<AddIcon />}
-            onClick={() => { setAddingNew(true); setEditingIdx(null); setForm(emptyForm()); setFormError(null); }}
-            disabled={addingNew}
-          >
-            Add Question
-          </Button>
-        )}
-      </Box>
-
-      {dayQuestions.length === 0 && !addingNew && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          No questions set for Day {selectedDay}. Click "Add Question" to get started.
-        </Alert>
-      )}
-
-      {/* Existing questions */}
-      {dayQuestions.map((q, idx) => (
-        <Card
-          key={idx}
-          sx={{ mb: 1.5, border: editingIdx === idx ? '2px solid #4f46e5' : '1px solid #e2e8f0' }}
-        >
-          <CardContent sx={{ p: 2.5 }}>
-            {editingIdx === idx ? (
-              <QuestionFormFields
-                form={form}
-                onChange={handleFormChange}
-                onOptionChange={handleOptionChange}
-                onSave={handleSaveEdit}
-                onCancel={() => { setEditingIdx(null); setForm(emptyForm()); setFormError(null); }}
-                saving={saving}
-              />
-            ) : (
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: 14, flex: 1 }}>
-                    Q{idx + 1}. {q.q}
-                  </Typography>
-                  {canEdit && (
-                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-                      <IconButton size="small" onClick={() => startEdit(idx)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(idx)} disabled={saving}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mt: 1.5 }}>
-                  {q.options.map((opt, i) => (
-                    <Box
-                      key={i}
-                      sx={{
-                        px: 1.5, py: 0.75, borderRadius: 1.5, fontSize: 13,
-                        bgcolor: i === q.answer ? '#f0fdf4' : '#f8fafc',
-                        border: `1px solid ${i === q.answer ? '#22c55e' : '#e2e8f0'}`,
-                        color: i === q.answer ? '#15803d' : '#475569',
-                        fontWeight: i === q.answer ? 700 : 400,
-                      }}
-                    >
+      {questions.map((q, idx) => (
+        <Card key={idx} sx={{ mb: 1.5 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontWeight: 700 }}>Q{idx + 1}. {q.q}</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mt: 1 }}>
+                  {(q.options ?? []).map((opt: string, i: number) => (
+                    <Box key={i} sx={{ px: 1.5, py: 0.75, borderRadius: 1.5, fontSize: 13, bgcolor: i === q.answer ? '#f0fdf4' : '#f8fafc', border: `1px solid ${i === q.answer ? '#22c55e' : '#e2e8f0'}`, color: i === q.answer ? '#15803d' : '#475569', fontWeight: i === q.answer ? 700 : 400 }}>
                       {LETTERS[i]}. {opt}{i === q.answer ? '  ✓' : ''}
                     </Box>
                   ))}
                 </Box>
               </Box>
-            )}
+              {canEdit && (
+                <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
+                  <IconButton size="small" onClick={() => openEdit(idx)}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleDelete(idx)}><DeleteIcon fontSize="small" /></IconButton>
+                </Box>
+              )}
+            </Box>
           </CardContent>
         </Card>
       ))}
 
-      {/* New question form */}
-      {addingNew && (
-        <Card sx={{ mb: 1.5, border: '2px dashed #4f46e5' }}>
-          <CardContent sx={{ p: 2.5 }}>
-            <Typography sx={{ fontWeight: 700, mb: 2, color: '#4f46e5' }}>New Question</Typography>
-            <QuestionFormFields
-              form={form}
-              onChange={handleFormChange}
-              onOptionChange={handleOptionChange}
-              onSave={handleAdd}
-              onCancel={() => { setAddingNew(false); setForm(emptyForm()); setFormError(null); }}
-              saving={saving}
-            />
-          </CardContent>
-        </Card>
+      {dialogOpen && (
+        <QuestionFormDialog
+          form={form}
+          onChange={handleFormChange}
+          onOptionChange={handleOptionChange}
+          onSave={handleSave}
+          onCancel={() => setDialogOpen(false)}
+          saving={saving}
+        />
       )}
     </Box>
   );

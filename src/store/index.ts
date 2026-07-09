@@ -3,6 +3,7 @@ import authReducer       from './slices/authSlice';
 import progressReducer   from './slices/progressSlice';
 import settingsReducer   from './slices/settingsSlice';
 import courseDataReducer from './slices/courseDataSlice';
+import interViewDataReducer from './slices/interviewDataSlice';
 import uiReducer         from './slices/uiSlice';
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
     progress:   progressReducer,
     settings:   settingsReducer,
     courseData: courseDataReducer,
+    interViewData: interViewDataReducer,
     ui:         uiReducer,
   },
 });
