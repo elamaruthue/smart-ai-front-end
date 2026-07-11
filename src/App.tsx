@@ -119,7 +119,7 @@ const AppRoutes = () => {
           }
         />
         <Route 
-          path='interview-quiz-editor'
+          path='interview-prep-editor'
           element={
             <SuperuserRoute>
               <InterViewQuizEditor />
