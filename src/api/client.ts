@@ -10,7 +10,10 @@ const api = axios.create({ baseURL: BASE_URL });
 // Attach JWT on every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('smartprep_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 

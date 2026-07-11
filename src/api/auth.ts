@@ -12,9 +12,17 @@ interface AuthResponse {
   user: AuthUser;
 }
 
+function storeAuthToken(data: AuthResponse | { access_token?: string; token?: string }) {
+  const token = 'token' in data ? data.token : data.access_token;
+  if (!token) {
+    throw new Error('Auth response did not contain a token.');
+  }
+  localStorage.setItem('smartprep_token', token);
+}
+
 export async function loginApi(email: string, password: string): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
-  localStorage.setItem('smartprep_token', data.token);
+  storeAuthToken(data);
   return data;
 }
 
@@ -24,7 +32,7 @@ export async function registerApi(
   password: string
 ): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>('/auth/register', { username, email, password });
-  localStorage.setItem('smartprep_token', data.token);
+  storeAuthToken(data);
   return data;
 }
 
