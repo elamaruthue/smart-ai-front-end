@@ -105,7 +105,7 @@ export default function InterViewQuizEditor() {
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>Interview Quiz Editor</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800 }}>Interview Prep Editor</Typography>
         <Chip label={role.toUpperCase()} size="small" sx={{ fontWeight: 700, bgcolor: role === 'superuser' ? 'error.main' : 'warning.main', color: '#fff' }} />
       </Box>
 
