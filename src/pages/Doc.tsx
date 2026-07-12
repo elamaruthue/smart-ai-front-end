@@ -14,12 +14,15 @@ import {
 } from "@mui/icons-material";
 
 export default function Doc() {
-  // PDF in public folder
-  const fileId = "1nmu6uvmDuL-w4dhs9vJ5K6DWz4hVLRSs";
+  const fileId = import.meta.env.VITE_PDF_FILE_ID as string | undefined;
 
-const pdfUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+  const pdfUrl = fileId
+    ? `https://drive.google.com/file/d/${fileId}/preview`
+    : "";
 
-const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+  const downloadUrl = fileId
+    ? `https://drive.google.com/uc?export=download&id=${fileId}`
+    : "";
 
   const downloadDoc = () => {
     const link = document.createElement("a");
