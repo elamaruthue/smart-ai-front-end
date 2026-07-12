@@ -179,13 +179,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
             </Typography>
             {['/course-editor', '/day-quiz-editor', '/interview-prep-editor', '/question-set', '/doc'].map((path, i) => {
               const active = location.pathname === path;
-              const labels = ['Course Editor', 'Day Quiz Editor', 'Interview Preps Editor', 'Question Set', 'Doc'];
+              const labels = ['Course Editor', 'Mock Test Editor', 'Interview Preps Editor', 'Day Learning Question', 'Doc'];
               const icons = [<AdminPanelSettingsIcon fontSize="small" />, <EditCalendarIcon fontSize="small" />, <QuestionAnswer />, <QuizOutlinedIcon fontSize="small" />, <Article />];
               return (
                 <Box key={path} component={Link} to={path} onClick={onMobileClose} sx={{
                   ...navItemSx(active),
                   color: active ? '#fbbf24' : '#fde68a',
-                  bgcolor: active ? 'rgba(251,191,36,0.15)' : 'transparent',
+                  bgcolor: active ? 'hsla(43, 96%, 56%, 0.15)' : 'transparent',
                   borderLeft: active ? '3px solid #fbbf24' : '3px solid transparent',
                   '&:hover': { bgcolor: 'rgba(251,191,36,0.1)', color: '#fbbf24' },
                 }}>

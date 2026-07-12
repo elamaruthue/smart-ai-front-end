@@ -169,7 +169,7 @@ export default function QuestionSet() {
       {/* Header */}
       <Box sx={{ background: "linear-gradient(135deg,#dc2626,#f97316)", borderRadius: 3, p: 3, mb: 3, color: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Mock Test Question Manager</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>Day Learning Question Manager</Typography>
           <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5 }}>Manage daily mock test items with the same editor experience.</Typography>
         </Box>
         <Chip label={questions.length + " Questions"} sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "#fff", fontWeight: 700, fontSize: 14 }} />
